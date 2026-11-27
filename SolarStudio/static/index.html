@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solar Studio · Building solar analysis</title>
+<link rel="stylesheet" href="/static/studio.css">
+<script type="importmap">{"imports":{"three":"/static/vendor/three.module.js"}}</script>
+<script type="module" src="/static/studio.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <details class="site-menu"><summary class="brand"><span class="brand-mark" aria-hidden="true">☼</span> Solar Studio <span aria-hidden="true">⌄</span></summary>
+    <nav><a href="/">Workspace</a><a href="/calculations" id="calculations-link">Calculations</a><button id="annual-export" disabled>Annual patches CSV</button><button id="hourly-export" disabled>Selected patch hourly CSV</button></nav>
+  </details>
+  <span class="top-divider"></span><span class="top-description">Building solar analysis</span>
+  <div class="top-actions"><button id="load-villa">Open villa</button><button id="import" class="outline">＋ Import STEP</button>
+  </div>
+</header>
+<main>
+  <section class="project-head">
+    <div><div class="location"><span class="location-dot"></span><span id="location">ABU DHABI, UAE</span></div>
+      <h1 id="project-name">Abu Dhabi Villa</h1></div>
+    <div class="summary" aria-live="polite">
+      <div><span>Average roof irradiation</span><strong id="roof-average">—</strong><small>kWh/m² · annual</small></div>
+      <div><span>Weather record</span><strong id="weather-summary">2024</strong><small id="hour-count">NASA POWER · hourly</small></div>
+    </div>
+  </section>
+  <div class="workspace">
+    <aside class="setup card" aria-label="Project settings">
+      <h2>Project setup</h2>
+      <section>
+        <h3>Building model</h3>
+        <div class="model-file"><span class="cube" aria-hidden="true">◇</span><div><strong id="file-name">Villa STEP model</strong><small id="model-meta">Loading geometry…</small></div></div>
+      </section>
+      <section>
+        <h3>Site coordinates</h3>
+        <div class="fields"><label>Latitude<input id="lat" type="number" min="-90" max="90" step="any" value="24.4539"></label>
+          <label>Longitude<input id="lon" type="number" min="-180" max="180" step="any" value="54.3773"></label></div>
+        <label>Weather year<input id="year" type="number" min="2001" max="2025" value="2024"></label>
+      </section>
+      <section class="run-section">
+        <button id="run" class="primary" disabled>▷ &nbsp; Run annual analysis</button>
+        <p id="status" role="status">Loading villa and weather results…</p>
+      </section>
+    </aside>
+    <section class="viewer card" aria-label="3D solar viewer">
+      <div class="viewer-header"><div><h2 id="view-title">Annual irradiation</h2><p id="view-caption">Select a surface patch to inspect its results.</p></div>
+      <div class="toggle" aria-label="Display mode"><button id="annual" aria-pressed="true">Annual</button><button id="shadow" aria-pressed="false">Shadows</button></div></div>
+      <div class="sun-toolbar" aria-label="Sun path controls">
+        <button id="preview" class="outline">Show full day path</button>
+        <button id="play-day" class="outline">Play day</button>
+        <button id="play-year" class="outline">Play year</button>
+        <button id="place-panels" class="outline" aria-pressed="false">Place Panels</button>
+        <button id="results-summary" class="outline" aria-pressed="false" aria-controls="summary-panel">Results Summary</button>
+        <button id="study-toggle" class="outline" aria-controls="study-workspace" aria-expanded="true">Surface study</button>
+        <a href="#sun-settings">Date &amp; time</a>
+      </div>
+      <div id="viewport">
+        <div class="view-bar">
+          <div class="toggle" aria-label="Surface layer"><button data-filter="roof" aria-pressed="true">Roofs</button><button data-filter="wall" aria-pressed="false">Walls</button><button data-filter="all" aria-pressed="false">All</button></div>
+          <div class="toggle" aria-label="Camera view"><button id="orbit" aria-pressed="true">3D</button><button id="top" aria-pressed="false">Top</button></div>
+        </div>
+        <div id="canvas" aria-label="Interactive 3D model"></div>
+        <button id="compass-button" class="compass" aria-label="Adjust orientation" aria-pressed="false" aria-controls="orientation-box"><img id="needle" src="/static/compass.png" alt="Compass rose"></button>
+        <section id="orientation-box" class="orientation-box" hidden aria-label="Orientation editor">
+          <strong>True north</strong>
+          <label>Clockwise from model +Y (°)<input id="orientation-angle" type="number" step="any" value="0"></label>
+          <input id="orientation-slider" type="range" min="0" max="359.9" step="0.1" aria-label="Rotate true north">
+          <div class="orientation-actions"><button id="orientation-apply" class="primary">Apply &amp; analyze</button><button id="orientation-close" class="outline">Cancel</button></div>
+          <details class="orientation-methods"><summary>Align from a reference</summary>
+            <div class="stack"><button id="draw-north" class="outline">Draw north arrow</button><button id="edge-north" class="outline">Use roof edge</button></div>
+            <div id="bearing-box" hidden><label>Directed edge bearing (°)<input id="bearing" type="number" min="0" max="360" value="90"></label>
+              <div class="stack"><button id="flip-edge">Reverse edge</button><button id="apply-bearing" class="outline">Apply bearing</button></div>
+            </div>
+          </details>
+        </section>
+        <div id="view-help" class="view-help">Drag to orbit · Scroll to zoom</div>
+        <button id="study-view-count" class="outline" hidden></button>
+      </div>
+      <section id="transport" class="transport" aria-label="Solar playback" hidden>
+        <div class="transport-row">
+          <button id="playback-toggle" class="outline" aria-label="Pause solar playback">Pause</button>
+          <button id="playback-restart" aria-label="Restart solar playback">Restart</button>
+          <output id="playback-clock" aria-label="Playback time"></output>
+          <select id="playback-month" aria-label="Representative month" hidden></select>
+          <select id="playback-speed" aria-label="Playback speed"><option value="0.25">¼×</option><option value="0.5">½×</option><option value="0.75">¾×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
+        </div>
+        <input id="playback-scrub" type="range" min="0" max="1440" step="1" value="0" aria-label="Playback timeline">
+        <div class="transport-scale"><span>00:00</span><span>Local time</span><span>24:00</span></div>
+      </section>
+      <div id="legend" class="legend"><div><strong id="legend-title">Annual irradiation</strong><small id="legend-units">kWh/m²</small></div><div class="scale"><div class="gradient"></div><div id="ticks"><span>0</span><span>500</span><span>1,000</span><span>1,500</span><span>2,000</span></div></div><label id="contour-label">Annual bands<select id="contour-step" aria-label="Annual contour interval"><option value="10">10 kWh/m²</option><option value="25">25 kWh/m²</option><option value="50">50 kWh/m²</option><option value="100">100 kWh/m²</option></select></label><button id="face-detail" class="outline" aria-pressed="false" disabled>Face detail</button></div>
+
+      <div id="comparison" class="comparison" hidden><div><strong>Same-pitch shade check</strong><small id="comparison-label"></small></div><div class="compare-controls"><button id="compare-shaded" class="outline">Shaded patch</button><button id="compare-clear" class="outline">Clear patch</button></div></div>
+    </section>
+    <aside class="details" aria-label="Analysis details">
+      <section id="panel-planner" class="card panel-planner" hidden aria-label="Panel placement">
+        <div class="planner-heading"><h2>Place Panels</h2><button id="panel-close" aria-label="Close panel placement">✕</button></div>
+        <p id="panel-hint">Click roof faces in the model to add or remove them.</p>
+        <div id="panel-faces" class="planner-chips"></div>
+        <div class="fields"><label>Length (m)<input id="panel-length" type="number" min=".2" max="8" step="any" value="2"></label>
+        <label>Width (m)<input id="panel-width" type="number" min=".2" max="8" step="any" value="1.1"></label></div>
+        <label>Module power (W)<input id="panel-watts" type="number" min="1" max="2500" value="500" step="any"></label>
+        <label>Annual load (kWh/year)<input id="panel-target" type="number" min="0" max="1000000000" step="any" placeholder="Optional"></label>
+        <label>Layout goal<select id="panel-mode"><option value="fill">Fill usable area</option><option value="target" disabled>Size to target</option></select></label>
+        <div class="planner-tools"><button id="panel-pen" class="outline" aria-pressed="false">Draw exclusion</button><button id="panel-finish" class="outline" hidden>Close polygon</button><button id="panel-undo" hidden>Undo point</button></div>
+        <div id="panel-exclusions"></div>
+        <details class="planner-advanced"><summary>Advanced</summary>
+          <div class="fields"><label>Setback (m)<input id="panel-setback" type="number" min="0" max="10" step="any" value=".30"></label>
+          <label>Spacing (m)<input id="panel-spacing" type="number" min="0" max="5" step="any" value=".10"></label></div>
+          <label>Performance ratio<input id="panel-ratio" type="number" min=".01" max="1" step="any" value=".80"></label>
+        </details>
+        <button id="panel-preview" class="primary">Preview layout</button>
+        <div id="panel-summary" class="planner-summary" hidden></div>
+        <button id="panel-focus" class="outline" hidden>Focus panels</button>
+        <button id="panel-apply" class="outline" disabled>Apply layout</button>
+        <p id="panel-status" role="status"></p>
+      </section>
+      <section class="card inspector">
+        <h2>Surface inspector</h2>
+        <div class="patch-head"><span id="patch-name">No patch selected</span><small id="patch-face">Click the model</small></div>
+        <div class="metric"><strong id="patch-total">—</strong><span>kWh/m² · annual</span></div>
+        <p id="patch-live" hidden></p>
+        <div class="angles"><div><small>Tilt</small><b id="tilt">—</b></div><div><small>True azimuth</small><b id="azimuth">—</b></div></div>
+        <dl><div><dt>Direct beam</dt><dd id="direct">—</dd></div><div><dt>Sky diffuse</dt><dd id="diffuse">—</dd></div><div><dt>Ground reflected</dt><dd id="ground">—</dd></div><div><dt>Beam lost to shade</dt><dd id="loss">—</dd></div></dl>
+      </section>
+      <section class="card preview" id="sun-settings"><h2>Sun &amp; shadows</h2>
+        <label>Date<input id="date" type="date" value="2024-03-20"></label>
+        <div class="fields"><label>Local time<input id="time" type="time" value="15:00"></label>
+          <label>UTC offset<input id="offset" type="text" value="+04:00" maxlength="6" placeholder="+04:00"></label></div>
+        <details><summary>Sun angles and clear-sky inputs</summary>
+        <div class="angles"><div><small>Elevation</small><b id="sun-elevation">—</b></div><div><small>Sun azimuth</small><b id="sun-azimuth">—</b></div><div><small>Zenith</small><b id="sun-zenith">—</b></div><div><small>Site longitude</small><b id="sun-longitude">—</b></div></div>
+        <dl><div><dt>GHI · clear sky</dt><dd id="live-ghi">—</dd></div><div><dt>DNI · clear sky</dt><dd id="live-dni">—</dd></div><div><dt>DHI · clear sky</dt><dd id="live-dhi">—</dd></div></dl></details>
+      </section>
+    </aside>
+  </div>
+  <section id="study-workspace" class="study-workspace" aria-label="Surface study">
+    <h2>Surface study</h2>
+    <div class="study-fields">
+      <h3 id="study-selection-title">Selected faces</h3>
+      <button id="study-viewer" class="outline">Go to 3D view</button>
+      <button id="study-clear" disabled>Clear selection</button>
+    </div>
+    <p id="study-pick-hint">Click faces in 3D to add them. Click a selected face again to remove it.</p>
+    <div id="study-selection" class="planner-chips"></div>
+    <details id="study-picker"><summary>Pick by face ID</summary><div class="study-fields">
+      <label>Face<select id="study-face-id" aria-label="Face ID"></select></label>
+      <button id="study-add-face" class="outline">Add face</button>
+    </div></details>
+    <div class="study-fields">
+      <label>Reporting period<select id="study-period"><option value="day">Selected local date</option><option value="year">Full UTC weather year</option></select></label>
+      <label class="study-check"><input type="checkbox" id="study-compare"> Compare shading</label>
+      <label class="study-check"><input type="checkbox" id="study-components"> Split chart into direct, sky diffuse, and ground-reflected light</label>
+      <label class="study-check"><input type="checkbox" id="study-heat"> Include absorbed heat</label>
+    </div>
+    <div id="study-scenario" hidden>
+      <h3>Shading comparison settings</h3>
+      <p>Keep the objects you want to study checked. The comparison shows how the unchecked objects affect those surfaces.</p>
+      <button id="study-pick-target" class="outline" aria-pressed="false">Pick a target in 3D</button>
+      <div id="study-roles" class="study-roles"></div>
+      <label>Compare on the model<select id="study-map"><option value="delta">Change caused by obstructions</option><option value="before">Without obstructions</option><option value="after">With obstructions</option><option value="scene">Original model contour</option></select></label>
+      <p id="study-map-legend"></p>
+    </div>
+    <div id="study-heat-options" hidden>
+      <p>Absorbed heat is calculated for the selected faces using the same absorptivity.</p>
+      <div class="study-fields">
+        <label>Absorptivity<input id="study-alpha" type="number" min="0" max="1" step=".01" value=".6"></label>
+        <label>Chart<select id="study-chart-mode"><option value="heat">Absorbed heat (W)</option><option value="irradiance">Face irradiance (W/m²)</option></select></label>
+      </div>
+    </div>
+    <div class="study-tools">
+      <button id="study-update" class="outline">Update study</button>
+      <button id="study-csv" class="outline" disabled>Hourly CSV</button>
+      <button id="study-pdf" class="outline" disabled>PDF report</button>
+      <button id="figure-report" class="outline">Annual figures</button>
+    </div>
+    <p id="study-status" role="status"></p>
+    <div id="study-results"></div>
+    <div id="study-chart"></div>
+  </section>
+  <section id="summary-panel" class="results-panel" aria-label="Results Summary" hidden>
+    <div class="planner-heading"><h2>Results Summary</h2><button id="results-close" aria-label="Close results summary">✕</button></div>
+    <div id="summary-content"></div>
+  </section>
+  <footer><span>Solar Studio</span><span>Hourly NASA POWER weather · pvlib solar position · geometry-based ray tracing</span></footer>
+</main>
+<dialog id="figure-dialog" aria-labelledby="figure-heading">
+  <div class="figure-header"><div><h2 id="figure-heading">Annual figures</h2><p id="figure-context"></p></div>
+    <div class="study-tools"><a id="figure-pdf" class="outline" hidden download>Download 5-page PDF</a>
+      <button id="figure-close" class="outline">Close</button></div></div>
+  <p id="figure-status" role="status"></p>
+  <div id="figure-grid"></div>
+</dialog>
+</body>
+</html>
