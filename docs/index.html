@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SolarStudio · Abu Dhabi villa</title>
+<link rel="stylesheet" href="./style.css">
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
+<main>
+<header><p>SolarStudio</p><h1>Where sunlight reaches the villa</h1><p>Abu Dhabi · 2024 annual irradiation · 0° model north · Precomputed simulation</p></header>
+<section aria-label="Interactive villa">
+<nav aria-label="Surface filter"><button data-filter="all" aria-pressed="true">All surfaces</button><button data-filter="roof" aria-pressed="false">Roofs</button><button data-filter="wall" aria-pressed="false">Walls</button><button id="reset">Reset view</button></nav>
+<div id="viewer" aria-label="3D annual solar irradiation model"></div>
+<footer><div><strong>Annual irradiation</strong> <span>kWh/m²</span><div id="gradient"></div><div id="ticks"></div></div><p id="detail" aria-live="polite">Loading villa…</p></footer>
+</section>
+<p class="hint">Drag to orbit, scroll to zoom, and select a roof or wall for its annual result.</p>
+</main>
+<script type="module" src="./viewer.js"></script>
+</html>
